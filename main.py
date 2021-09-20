@@ -21,7 +21,15 @@ except:
     os.system(bs4command)
     os.system("python3 main.py")
 
-
+try:    
+    import xlsxwriter
+    print("[SUCCESS] imported XLSXWRITER")
+except:
+    print("[CRITICAL] Can't import XLSXWRITER")
+    xlsxwritercommand = "python3 -m pip install xlsxwriter"
+    print(f"[Info] Running command '{xlsxwritercommand}'")
+    os.system(xlsxwritercommand)
+    os.system("python3 main.py")
 
 
 config = {
@@ -169,11 +177,21 @@ def main():
     keywords =config["keywords"][0]
     print("[LOG] {}".format(cities))
     print("[LOG] {}".format(keywords))
+    with open(f'{output_filename}.xlsx',"w"):
+        workbook = xlsxwriter.Workbook(f'{output_filename}.xlsx')
+        worksheet = workbook.add_worksheet()
+
+    print(f"[LOG]File Created ({output_filename}.xlsx)")
+    output = []
+    output.clear()
     for c in cities:
         for k in keywords:
             chrome_options = Options()
-            #chrome_options.add_argument("--headless")
-            driver = webdriver.Chrome(chromedriverpath)
+            if logger == False:
+                chrome_options.add_argument("--headless")
+            if logger == True:
+                pass
+            driver = webdriver.Chrome(chromedriverpath,options=chrome_options)
             url = f"https://www.google.com/maps/search/{f'{c} {k} {country}'.replace(' ','+')}"
             driver.get(url)
             soup = BeautifulSoup(driver.page_source,"html.parser")
@@ -182,16 +200,106 @@ def main():
 
             for icon in all_web_icons:
                 if icon.get('src') == "//maps.gstatic.com/consumer/images/icons/2x/ic_directions_gm_blue_24px.png":
+                    if logger == True:
+                        my_list = []
 
-                    print(icon.parent.parent.parent.parent.parent.get_text())
-                    print("\n\n")
+                        the_text = icon.parent.parent.parent.parent.parent.parent.parent.find_all("span")
+                        my_list.clear()
+                        for t in the_text :
+
+                            if t.get_text().strip() != "":
+                                print(t.get_text())
+                                my_list.insert(0,t.get_text())
+                                try:
+                                    t.get_text().split('+')[1]
+                                    phonenum = t.get_text()
+                                except:
+                                    pass
+
+
+                        item_data = {
+                            "title":the_text[0].get_text(),
+                            "phoneNumber":phonenum,
+                            "keyword":k,
+                            "city":c,
+                            "location":the_text[9].get_text(),
+                            "kind":my_list[6],
+                            "kind_2":my_list[9]
+                        }
+                        output.insert(0,item_data)
+                        print(item_data)
+
+                        print(my_list)
+
+
+                            
+
+                        # print(icon.parent.parent.parent.parent.parent.get_text())
+                        print("\n\n")
+
+                    if logger == False:
+                        my_list = []
+
+                        the_text = icon.parent.parent.parent.parent.parent.parent.parent.find_all("span")
+                        my_list.clear()
+                        for t in the_text :
+
+                            if t.get_text().strip() != "":
+                                #print(t.get_text())
+                                my_list.insert(0,t.get_text())
+                                try:
+                                    t.get_text().split('+')[1]
+                                    phonenum = t.get_text()
+                                except:
+                                    pass
+
+
+                        item_data = {
+                            "title":the_text[0].get_text(),
+                            "phoneNumber":phonenum,
+                            "keyword":k,
+                            "city":c,
+                            "location":the_text[9].get_text(),
+                            "kind":my_list[6],
+                            "kind_2":my_list[9]
+                        }
+                        output.insert(0,item_data)
+                        #print(item_data)
+
+                        #print(my_list)
+
+
+                            
+
+                        # print(icon.parent.parent.parent.parent.parent.get_text())
+                        #print("\n\n")
+                    
+
+                    
             driver.quit() 
+    print("[LOG] Writing the file")
+    worksheet.write("A1","Title")
+    worksheet.write("B1","Phone Number")
+    worksheet.write("C1","Keyword")
+    worksheet.write("D1","City")
+    worksheet.write("E1","Location")
+    worksheet.write("F1","Kind")
+    worksheet.write("G1","Kind-2(for errors)")
 
-
+    for i in range(len(output)-1):
+        worksheet.write(f"A{i+2}",output[i]["title"])
+        worksheet.write(f"B{i+2}",output[i]["phoneNumber"])
+        worksheet.write(f"C{i+2}",output[i]["keyword"])
+        worksheet.write(f"D{i+2}",output[i]["city"])
+        worksheet.write(f"E{i+2}",output[i]["location"])
+        worksheet.write(f"F{i+2}",output[i]["kind"])
+        worksheet.write(f"G{i+2}",output[i]["kind_2"])
     
+    workbook.close()
 
-
-
+    print("[LOG]Done!")
+    print("[MSG] Author:Efe Akaröz")
+    
 
     
 main()
